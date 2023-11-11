@@ -1,0 +1,72 @@
+version: '3.7'
+services:
+  mariadb:
+    image: alpine-mariadb-42
+    container_name: "mariadb"
+    networks:
+      - inception
+    volumes:
+      - wordpressDB:/volumes/wordpressDB
+    environment:
+      - WordpressDBName
+      - WordpressDBUser
+      - WordpressDBPass
+      - MariaDBRootPassword
+    build:
+      context: ./mariadb
+    restart: always
+  php:
+    image: alpine-php-42
+    container_name: "php"
+    depends_on:
+      - mariadb
+    networks:
+      - inception
+    volumes:
+      - wordpressFiles:/volumes/wordpressFiles
+    environment:
+      - WordpressDBName
+      - WordpressDBUser
+      - WordpressDBPass
+      - WordpressSiteTitle
+      - WordpressAdminUser
+      - WordpressAdminPassword
+      - WordpressAdminEmail
+      - WP_CLI_CONFIG_PATH
+    build:
+      context: ./php
+    restart: always
+  nginx:
+    image: alpine-nginx-42
+    container_name: "nginx"
+    depends_on:
+      - php
+    ports:
+      - "443:443"
+    networks:
+      - inception
+    volumes:
+      - wordpressFiles:/volumes/wordpressFiles
+    build:
+      context: ./nginx
+    restart: always
+
+networks:
+  inception:
+    name: "inception"
+
+volumes:
+  wordpressFiles:
+    name: "wordpressFiles"
+    driver: local
+    driver_opts:
+      device: /home/$LOGIN/data/wordpressFiles
+      type: volume
+      o : bind
+  wordpressDB:
+    name: "wordpressDB"
+    driver: local
+    driver_opts:
+      device: /home/$LOGIN/data/wordpressDB
+      type: volume
+      o: bind
